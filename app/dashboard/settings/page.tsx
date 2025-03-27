@@ -1,0 +1,436 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { Bell, Camera, Database, HardDrive, RefreshCw, Save, Server, Settings, Shield, Users } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { motion } from "framer-motion"
+import { Separator } from "@/components/ui/separator"
+
+export default function SettingsPage() {
+  const router = useRouter()
+  const [loading, setLoading] = useState(true)
+  const [authData, setAuthData] = useState<any>(null)
+  const [refreshing, setRefreshing] = useState(false)
+  const [activeTab, setActiveTab] = useState("general")
+
+  // Получение данных авторизации из sessionStorage
+  useEffect(() => {
+    const auth = sessionStorage.getItem("nictech-auth")
+    if (auth) {
+      setAuthData(JSON.parse(auth))
+    } else {
+      router.push("/login")
+    }
+  }, [router])
+
+  // Загрузка данных
+  useEffect(() => {
+    if (!authData) return
+
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        
+        // Имитация загрузки данных
+        await new Promise(resolve => setTimeout(resolve, 1500))
+        
+      } catch (error) {
+        console.error("Ошибка загрузки данных:", error)
+      } finally {
+        setLoading(false)
+        setRefreshing(false)
+      }
+    }
+
+    fetchData()
+  }, [authData, refreshing])
+
+  // Обработчик обновления данных
+  const handleRefresh = () => {
+    setRefreshing(true)
+  }
+
+  return (
+    <div className="h-full flex flex-col">
+      <div className="p-6 border-b bg-background">
+        <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Настройки</h1>
+            <p className="text-muted-foreground mt-1">Управление настройками системы</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button variant="outline" size="icon" onClick={handleRefresh} disabled={refreshing}>
+              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+            </Button>
+            
+            <Button>
+              <Save className="mr-2 h-4 w-4" />
+              Сохранить изменения
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 flex overflow-hidden">
+        <div className="w-64 border-r p-4 overflow-y-auto hidden md:block">
+          <nav className="space-y-1">
+            <Button 
+              variant={activeTab === "general" ? "secondary" : "ghost"} 
+              className="w-full justify-start"
+              onClick={() => setActiveTab("general")}
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              Общие
+            </Button>
+            <Button 
+              variant={activeTab === "server" ? "secondary" : "ghost"} 
+              className="w-full justify-start"
+              onClick={() => setActiveTab("server")}
+            >
+              <Server className="mr-2 h-4 w-4" />
+              Сервер
+            </Button>
+            <Button 
+              variant={activeTab === "cameras" ? "secondary" : "ghost"} 
+              className="w-full justify-start"
+              onClick={() => setActiveTab("cameras")}
+            >
+              <Camera className="mr-2 h-4 w-4" />
+              Камеры
+            </Button>
+            <Button 
+              variant={activeTab === "storage" ? "secondary" : "ghost"} 
+              className="w-full justify-start"
+              onClick={() => setActiveTab("storage")}
+            >
+              <HardDrive className="mr-2 h-4 w-4" />
+              Хранилище
+            </Button>
+            <Button 
+              variant={activeTab === "users" ? "secondary" : "ghost"} 
+              className="w-full justify-start"
+              onClick={() => setActiveTab("users")}
+            >
+              <Users className="mr-2 h-4 w-4" />
+              Пользователи
+            </Button>
+            <Button 
+              variant={activeTab === "security" ? "secondary" : "ghost"} 
+              className="w-full justify-start"
+              onClick={() => setActiveTab("security")}
+            >
+              <Shield className="mr-2 h-4 w-4" />
+              Безопасность
+            </Button>
+            <Button 
+              variant={activeTab === "notifications" ? "secondary" : "ghost"} 
+              className="w-full justify-start"
+              onClick={() => setActiveTab("notifications")}
+            >
+              <Bell className="mr-2 h-4 w-4" />
+              Уведомления
+            </Button>
+            <Button 
+              variant={activeTab === "database" ? "secondary" : "ghost"} 
+              className="w-full justify-start"
+              onClick={() => setActiveTab("database")}
+            >
+              <Database className="mr-2 h-4 w-4" />
+              База данных
+            </Button>
+          </nav>
+        </div>
+        
+        <div className="flex-1 p-6 overflow-auto">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="md:hidden mb-6">
+            <TabsList className="grid grid-cols-4 mb-2">
+              <TabsTrigger value="general">
+                <Settings className="h-4 w-4" />
+              </TabsTrigger>
+              <TabsTrigger value="server">
+                <Server className="h-4 w-4" />
+              </TabsTrigger>
+              <TabsTrigger value="cameras">
+                <Camera className="h-4 w-4" />
+              </TabsTrigger>
+              <TabsTrigger value="storage">
+                <HardDrive className="h-4 w-4" />
+              </TabsTrigger>
+            </TabsList>
+            <TabsList className="grid grid-cols-4">
+              <TabsTrigger value="users">
+                <Users className="h-4 w-4" />
+              </TabsTrigger>
+              <TabsTrigger value="security">
+                <Shield className="h-4 w-4" />
+              </TabsTrigger>
+              <TabsTrigger value="notifications">
+                <Bell className="h-4 w-4" />
+              </TabsTrigger>
+              <TabsTrigger value="database">
+                <Database className="h-4 w-4" />
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          
+          {activeTab === "general" && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6"
+            >
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Общие настройки</h2>
+              </div>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Настройки системы</CardTitle>
+                  <CardDescription>Основные настройки системы видеонаблюдения</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {loading ? (
+                    <div className="space-y-4">
+                      {Array(4).fill(0).map((_, i) => (
+                        <Skeleton key={i} className="h-10 w-full" />
+                      ))}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="system-name">Название системы</Label>
+                        <Input id="system-name" defaultValue="NicTech Enterprise" />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="language">Язык интерфейса</Label>
+                        <Select defaultValue="ru">
+                          <SelectTrigger id="language">
+                            <SelectValue placeholder="Выберите язык" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ru">Русский</SelectItem>
+                            <SelectItem value="en">English</SelectItem>
+                            <SelectItem value="de">Deutsch</SelectItem>
+                            <SelectItem value="fr">Français</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="timezone">Часовой пояс</Label>
+                        <Select defaultValue="europe-moscow">
+                          <SelectTrigger id="timezone">
+                            <SelectValue placeholder="Выберите часовой пояс" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="europe-moscow">Москва (UTC+3)</SelectItem>
+                            <SelectItem value="europe-london">Лондон (UTC+0)</SelectItem>
+                            <SelectItem value="america-new_york">Нью-Йорк (UTC-5)</SelectItem>
+                            <SelectItem value="asia-tokyo">Токио (UTC+9)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="dark-mode">Темная тема</Label>
+                          <p className="text-sm text-muted-foreground">Включить темную тему интерфейса</p>
+                        </div>
+                        <Switch id="dark-mode" defaultChecked />
+                      </div>
+                      
+                      <Separator />
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="log-level">Уровень логирования</Label>
+                        <Select defaultValue="info">
+                          <SelectTrigger id="log-level">
+                            <SelectValue placeholder="Выберите уровень логирования" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="debug">Отладка</SelectItem>
+                            <SelectItem value="info">Информация</SelectItem>
+                            <SelectItem value="warning">Предупреждения</SelectItem>
+                            <SelectItem value="error">Ошибки</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="auto-update">Автоматические обновления</Label>
+                          <p className="text-sm text-muted-foreground">Автоматически проверять и устанавливать обновления</p>
+                        </div>
+                        <Switch id="auto-update" defaultChecked />
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+                <CardFooter className="flex justify-end">
+                  <Button>Сохранить настройки</Button>
+                </CardFooter>
+              </Card>
+            </motion.div>
+          )}
+          
+          {activeTab === "server" && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6"
+            >
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Настройки сервера</h2>
+              </div>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Параметры сервера</CardTitle>
+                  <CardDescription>Настройки сервера видеонаблюдения</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {loading ? (
+                    <div className="space-y-4">
+                      {Array(4).fill(0).map((_, i) => (
+                        <Skeleton key={i} className="h-10 w-full" />
+                      ))}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="server-address">Адрес сервера</Label>
+                        <Input id="server-address" defaultValue="http://localhost:11012" />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="server-port">Порт</Label>
+                        <Input id="server-port" defaultValue="11012" />
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="https">HTTPS</Label>
+                          <p className="text-sm text-muted-foreground">Использовать защищенное соединение</p>
+                        </div>
+                        <Switch id="https" defaultChecked />
+                      </div>
+                      
+                      <Separator />
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="max-connections">Максимальное количество подключений</Label>
+                        <Input id="max-connections" defaultValue="100" />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="session-timeout">Таймаут сессии (минуты)</Label>
+                        <Input id="session-timeout" defaultValue="30" />
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="remote-access">Удаленный доступ</Label>
+                          <p className="text-sm text-muted-foreground">Разрешить удаленный доступ к серверу</p>
+                        </div>
+                        <Switch id="remote-access" defaultChecked />
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+                <CardFooter className="flex justify-end">
+                  <Button>Сохранить настройки</Button>
+                </CardFooter>
+              </Card>
+            </motion.div>
+          )}
+          
+          {activeTab === "cameras" && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6"
+            >
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Настройки камер</h2>
+              </div>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Параметры камер</CardTitle>
+                  <CardDescription>Настройки камер видеонаблюдения</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {loading ? (
+                    <div className="space-y-4">
+                      {Array(4).fill(0).map((_, i) => (
+                        <Skeleton key={i} className="h-10 w-full" />
+                      ))}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="default-framerate">Частота кадров по умолчанию</Label>
+                        <Select defaultValue="25">
+                          <SelectTrigger id="default-framerate">
+                            <SelectValue placeholder="Выберите частоту кадров" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="10">10 fps</SelectItem>
+                            <SelectItem value="15">15 fps</SelectItem>
+                            <SelectItem value="25">25 fps</SelectItem>
+                            <SelectItem value="30">30 fps</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="default-resolution">Разрешение по умолчанию</Label>
+                        <Select defaultValue="1080p">
+                          <SelectTrigger id="default-resolution">
+                            <SelectValue placeholder="Выберите разрешение" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="720p">HD (1280x720)</SelectItem>
+                            <SelectItem value="1080p">Full HD (1920x1080)</SelectItem>
+                            <SelectItem value="2k">2K (2560x1440)</SelectItem>
+                            <SelectItem value="4k">4K (3840x2160)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="motion-detection">Детекция движения</Label>
+                          <p className="text-sm text-muted-foreground">Включить детекцию движения по умолчанию</p>
+                        </div>
+                        <Switch id="motion-detection" defaultChecked />
+                      </div>
+                      
+                      <Separator />
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="reconnect-interval">Интервал переподключения (секунды)</Label>
+                        <Input id="reconnect-interval" defaultValue="10" />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="ptz-speed">Скорость PTZ по умолчанию</Label>
+                        <Select defaultValue="medium">
+                          <SelectTrigger id="ptz-speed">
+                            <SelectValue placeholder="Выберите скорость PTZ" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="\
+
