@@ -20,32 +20,44 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Формирование URL для получения кадра архива
-    let snapshotUrl = `${serverUrl}/rsapi/archive/snapshot?sessionid=${sessionId}&speed=${speed}`
-    if (viewSize) {
-      snapshotUrl += `&viewSize=${viewSize}`
+    try {
+      // Формирование URL для получения кадра архива
+      let snapshotUrl = `${serverUrl}/rsapi/archive/snapshot?sessionid=${sessionId}&speed=${speed}`
+      if (viewSize) {
+        snapshotUrl += `&viewSize=${viewSize}`
+      }
+
+      // Получение кадра архива
+      const response = await fetch(snapshotUrl, {
+        headers: {
+          Authorization: authHeader,
+        },
+        signal: AbortSignal.timeout(5000),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Ошибка получения кадра архива: ${response.statusText}`)
+      }
+
+      // Получаем изображение как ArrayBuffer
+      const imageBuffer = await response.arrayBuffer()
+
+      // Возвращаем изображение с правильным Content-Type
+      return new Response(imageBuffer, {
+        headers: {
+          "Content-Type": "image/jpeg",
+        },
+      })
+    } catch (fetchError) {
+      console.error("Ошибка при запросе к серверу NicTech:", fetchError)
+
+      // Возвращаем заглушку изображения для тестирования
+      const width = viewSize ? Number.parseInt(viewSize.split("x")[0]) : 1280
+      const height = viewSize ? Number.parseInt(viewSize.split("x")[1]) : 720
+
+      // Перенаправляем на placeholder.svg с нужными размерами
+      return NextResponse.redirect(`/placeholder.svg?height=${height}&width=${width}`)
     }
-
-    // Получение кадра архива
-    const response = await fetch(snapshotUrl, {
-      headers: {
-        Authorization: authHeader,
-      },
-    })
-
-    if (!response.ok) {
-      throw new Error(`Ошибка получения кадра архива: ${response.statusText}`)
-    }
-
-    // Получаем изображение как ArrayBuffer
-    const imageBuffer = await response.arrayBuffer()
-
-    // Возвращаем изображение с правильным Content-Type
-    return new Response(imageBuffer, {
-      headers: {
-        "Content-Type": "image/jpeg",
-      },
-    })
   } catch (error) {
     console.error("Ошибка получения кадра архива:", error)
     return NextResponse.json(

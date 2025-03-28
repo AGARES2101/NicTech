@@ -29,6 +29,7 @@ export default function ArchivePage() {
   const [error, setError] = useState("")
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [currentImage, setCurrentImage] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
 
   // Получение данных авторизации из sessionStorage
   useEffect(() => {
@@ -52,7 +53,8 @@ export default function ArchivePage() {
         })
 
         if (!response.ok) {
-          throw new Error("Ошибка получения списка камер")
+          const errorData = await response.json()
+          throw new Error(errorData.message || "Ошибка получения списка камер")
         }
 
         const data = await response.json()
@@ -64,7 +66,7 @@ export default function ArchivePage() {
         }
       } catch (err) {
         console.error("Ошибка загрузки камер:", err)
-        setError("Не удалось загрузить список камер")
+        setError("Не удалось загрузить список камер: " + (err instanceof Error ? err.message : String(err)))
       }
     }
 
@@ -88,7 +90,8 @@ export default function ArchivePage() {
         })
 
         if (!response.ok) {
-          throw new Error("Ошибка получения записей архива")
+          const errorData = await response.json()
+          throw new Error(errorData.message || "Ошибка получения записей архива")
         }
 
         const data = await response.json()
@@ -97,12 +100,16 @@ export default function ArchivePage() {
         // Если есть записи, устанавливаем текущее время на начало первой записи
         if (data.length > 0) {
           setCurrentTime(new Date(data[0].start).toLocaleTimeString("ru-RU"))
+        } else {
+          // Если записей нет, очищаем текущее время
+          setCurrentTime("")
         }
       } catch (err) {
         console.error("Ошибка загрузки записей архива:", err)
-        setError("Не удалось загрузить записи архива")
+        setError("Не удалось загрузить записи архива: " + (err instanceof Error ? err.message : String(err)))
       } finally {
         setLoading(false)
+        setRefreshing(false)
       }
     }
 
