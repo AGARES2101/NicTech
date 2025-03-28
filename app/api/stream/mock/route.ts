@@ -7,15 +7,23 @@ export async function GET(request: NextRequest) {
     const id = searchParams.get("id")
     const width = searchParams.get("width") || "640"
     const height = searchParams.get("height") || "480"
+    const streamIndex = searchParams.get("streamIndex") || "0"
 
     // Получаем базовый URL для создания абсолютного URL
     const baseUrl = new URL(request.url).origin
 
     // Создаем абсолютный URL для перенаправления
+    // Для разных потоков используем разные заполнители
     const placeholderUrl = new URL("/placeholder.svg", baseUrl)
     placeholderUrl.searchParams.set("height", height)
     placeholderUrl.searchParams.set("width", width)
-    placeholderUrl.searchParams.set("text", `Camera ${id || "Mock"}`)
+
+    // Для основного и дополнительного потоков разные тексты
+    if (streamIndex === "1") {
+      placeholderUrl.searchParams.set("text", `Camera ${id || "Mock"} (Secondary)`)
+    } else {
+      placeholderUrl.searchParams.set("text", `Camera ${id || "Mock"} (Main)`)
+    }
 
     // Возвращаем абсолютный URL для перенаправления
     return NextResponse.redirect(placeholderUrl.toString())

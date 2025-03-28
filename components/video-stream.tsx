@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import { AlertCircle } from "lucide-react"
@@ -142,9 +144,12 @@ export function VideoStream({
   }, [cameraId, serverUrl, authHeader, streamType, codec, streamIndex, onError, streamId])
 
   // Обработчик ошибок для видео
-  const handleVideoError = () => {
+  const handleVideoError = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
     const errorMessage = "Не удалось загрузить видеопоток"
-    logger.error(LogCategory.VIDEO, `${errorMessage} для ${streamId}`)
+    logger.error(LogCategory.VIDEO, `${errorMessage} для ${streamId}`, {
+      errorCode: videoRef.current?.error?.code,
+      errorMessage: videoRef.current?.error?.message,
+    })
     setError(errorMessage)
     setLoading(false)
     if (onError) onError(errorMessage)
@@ -214,7 +219,11 @@ export function VideoStream({
       ) : (
         <video
           ref={videoRef}
-          src={streamType === "mock" ? `/api/stream/mock?id=${cameraId}&width=640&height=480` : undefined}
+          src={
+            streamType === "mock"
+              ? `/api/stream/mock?id=${cameraId}&width=640&height=480&streamIndex=${streamIndex}`
+              : undefined
+          }
           controls={controls}
           muted={muted}
           autoPlay={autoPlay}

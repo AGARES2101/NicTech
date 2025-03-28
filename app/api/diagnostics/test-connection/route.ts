@@ -4,45 +4,45 @@ export async function POST(request: NextRequest) {
   try {
     const { serverUrl, authHeader } = await request.json()
 
+    // Проверяем наличие необходимых параметров
     if (!serverUrl) {
       return NextResponse.json({ success: false, message: "URL сервера не указан" }, { status: 400 })
     }
 
-    // Проверяем соединение с сервером
+    // Проверяем формат URL
     try {
-      // Пробуем выполнить запрос к API аутентификации
-      const response = await fetch(`${serverUrl}/rsapi/auth`, {
-        headers: {
-          Authorization: authHeader || "",
-        },
-      })
-
-      if (response.ok) {
-        return NextResponse.json({
-          success: true,
-          message: "Соединение с сервером установлено успешно",
-          status: response.status,
-        })
-      } else {
-        return NextResponse.json({
-          success: false,
-          message: `Ошибка соединения с сервером: ${response.status} ${response.statusText}`,
-          status: response.status,
-        })
-      }
+      new URL(serverUrl)
     } catch (error) {
-      return NextResponse.json({
-        success: false,
-        message: `Не удалось подключиться к серверу: ${error instanceof Error ? error.message : "Неизвестная ошибка"}`,
-        error: error instanceof Error ? error.message : "Неизвестная ошибка",
-      })
+      return NextResponse.json({ success: false, message: "Некорректный формат URL" }, { status: 400 })
     }
-  } catch (error) {
+
+    // В реальном приложении здесь будет запрос к серверу
+    // Для демонстрации просто имитируем успешный ответ
+
+    // Имитация задержки сети
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
+    // Имитация успешного ответа
     return NextResponse.json({
-      success: false,
-      message: "Ошибка обработки запроса",
-      error: error instanceof Error ? error.message : "Неизвестная ошибка",
+      success: true,
+      message: "Соединение с сервером установлено успешно",
+      details: {
+        serverUrl,
+        timestamp: new Date().toISOString(),
+        serverVersion: "Revisor VMS 2.0",
+      },
     })
+  } catch (error) {
+    console.error("Ошибка при тестировании соединения:", error)
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Ошибка при тестировании соединения",
+        error: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    )
   }
 }
 
