@@ -2,7 +2,21 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Bell, Camera, Database, HardDrive, RefreshCw, Save, Server, Settings, Shield, Users } from "lucide-react"
+import {
+  Bell,
+  Camera,
+  Database,
+  HardDrive,
+  RefreshCw,
+  Save,
+  Server,
+  Settings,
+  Shield,
+  Users,
+  Info,
+  Bug,
+  FileText,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -13,6 +27,9 @@ import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { motion } from "framer-motion"
 import { Separator } from "@/components/ui/separator"
+import { APP_VERSION, CHANGELOG } from "@/lib/version"
+import { DiagnosticsTool } from "@/components/diagnostics-tool"
+import { logger, LogCategory, LogLevel } from "@/lib/logger"
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -26,9 +43,12 @@ export default function SettingsPage() {
     const auth = sessionStorage.getItem("nictech-auth")
     if (auth) {
       try {
-        setAuthData(JSON.parse(auth))
+        const parsedAuth = JSON.parse(auth)
+        setAuthData(parsedAuth)
+        logger.info(LogCategory.AUTH, "Данные авторизации успешно загружены")
       } catch (e) {
         console.error("Ошибка при разборе данных авторизации:", e)
+        logger.error(LogCategory.AUTH, "Ошибка при разборе данных авторизации", e)
         router.push("/login")
         return
       }
@@ -36,11 +56,13 @@ export default function SettingsPage() {
       // Для тестирования в режиме разработки можно использовать мок-данные
       if (process.env.NODE_ENV === "development") {
         console.log("Режим разработки: используем мок-данные для авторизации")
+        logger.info(LogCategory.AUTH, "Режим разработки: используем мок-данные для авторизации")
         setAuthData({
           serverUrl: "http://mock-server",
           authHeader: "Basic mock-auth",
         })
       } else {
+        logger.warn(LogCategory.AUTH, "Данные авторизации отсутствуют, перенаправление на страницу входа")
         router.push("/login")
         return
       }
@@ -54,11 +76,15 @@ export default function SettingsPage() {
     const fetchData = async () => {
       try {
         setLoading(true)
+        logger.info(LogCategory.SYSTEM, "Загрузка настроек", { serverUrl: authData.serverUrl })
 
         // Имитация загрузки данных
         await new Promise((resolve) => setTimeout(resolve, 1500))
+
+        logger.info(LogCategory.SYSTEM, "Настройки успешно загружены")
       } catch (error) {
         console.error("Ошибка загрузки данных:", error)
+        logger.error(LogCategory.SYSTEM, "Ошибка загрузки настроек", error)
       } finally {
         setLoading(false)
         setRefreshing(false)
@@ -70,6 +96,7 @@ export default function SettingsPage() {
 
   // Обработчик обновления данных
   const handleRefresh = () => {
+    logger.info(LogCategory.SYSTEM, "Запрос на обновление настроек")
     setRefreshing(true)
   }
 
@@ -161,6 +188,30 @@ export default function SettingsPage() {
               <Database className="mr-2 h-4 w-4" />
               База данных
             </Button>
+            <Separator className="my-2" />
+            <Button
+              variant={activeTab === "diagnostics" ? "secondary" : "ghost"}
+              className="w-full justify-start"
+              onClick={() => setActiveTab("diagnostics")}
+            >
+              <Bug className="mr-2 h-4 w-4" />
+              Диагностика
+            </Button>
+            <Button
+              variant={activeTab === "logs" ? "secondary" : "ghost"}
+              className="w-full justify-start"
+              onClick={() => setActiveTab("logs")}
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              Логи
+            </Button>
+            <Button
+              variant={activeTab === "about" ? "secondary" : "ghost"}
+              className="w-full justify-start"
+              onClick={() => setActiveTab("about")}
+            >
+              <Info className="mr-2 h-4 w-4" />О программе
+            </Button>
           </nav>
         </div>
 
@@ -180,7 +231,7 @@ export default function SettingsPage() {
                 <HardDrive className="h-4 w-4" />
               </TabsTrigger>
             </TabsList>
-            <TabsList className="grid grid-cols-4">
+            <TabsList className="grid grid-cols-4 mb-2">
               <TabsTrigger value="users">
                 <Users className="h-4 w-4" />
               </TabsTrigger>
@@ -192,6 +243,17 @@ export default function SettingsPage() {
               </TabsTrigger>
               <TabsTrigger value="database">
                 <Database className="h-4 w-4" />
+              </TabsTrigger>
+            </TabsList>
+            <TabsList className="grid grid-cols-3">
+              <TabsTrigger value="diagnostics">
+                <Bug className="h-4 w-4" />
+              </TabsTrigger>
+              <TabsTrigger value="logs">
+                <FileText className="h-4 w-4" />
+              </TabsTrigger>
+              <TabsTrigger value="about">
+                <Info className="h-4 w-4" />
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -270,15 +332,20 @@ export default function SettingsPage() {
 
                       <div className="space-y-2">
                         <Label htmlFor="log-level">Уровень логирования</Label>
-                        <Select defaultValue="info">
+                        <Select
+                          defaultValue={LogLevel.INFO.toString()}
+                          onValueChange={(value) => {
+                            logger.setLogLevel(Number.parseInt(value) as LogLevel)
+                          }}
+                        >
                           <SelectTrigger id="log-level">
                             <SelectValue placeholder="Выберите уровень логирования" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="debug">Отладка</SelectItem>
-                            <SelectItem value="info">Информация</SelectItem>
-                            <SelectItem value="warning">Предупреждения</SelectItem>
-                            <SelectItem value="error">Ошибки</SelectItem>
+                            <SelectItem value={LogLevel.DEBUG.toString()}>Отладка</SelectItem>
+                            <SelectItem value={LogLevel.INFO.toString()}>Информация</SelectItem>
+                            <SelectItem value={LogLevel.WARN.toString()}>Предупреждения</SelectItem>
+                            <SelectItem value={LogLevel.ERROR.toString()}>Ошибки</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -466,6 +533,106 @@ export default function SettingsPage() {
                 </CardContent>
                 <CardFooter className="flex justify-end">
                   <Button>Сохранить настройки</Button>
+                </CardFooter>
+              </Card>
+            </motion.div>
+          )}
+
+          {activeTab === "diagnostics" && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6"
+            >
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Диагностика системы</h2>
+              </div>
+
+              <DiagnosticsTool serverUrl={authData?.serverUrl} authHeader={authData?.authHeader} />
+            </motion.div>
+          )}
+
+          {activeTab === "logs" && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6"
+            >
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Логи веб-интерфейса</h2>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Журнал событий</CardTitle>
+                  <CardDescription>Просмотр логов работы веб-интерфейса</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {/* Здесь будет компонент для просмотра логов */}
+                  <p className="text-muted-foreground">
+                    Для просмотра подробных логов и диагностики перейдите на вкладку "Диагностика"
+                  </p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {activeTab === "about" && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6"
+            >
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">О программе</h2>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>NicTech Surveillance</CardTitle>
+                  <CardDescription>Информация о версии и разработчиках</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">Версия:</span>
+                      <span>{APP_VERSION.full}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">Кодовое имя:</span>
+                      <span>{APP_VERSION.codename}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">Дата сборки:</span>
+                      <span>{APP_VERSION.build}</span>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">История изменений</h3>
+                    {CHANGELOG.map((release, index) => (
+                      <div key={index} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-semibold">Версия {release.version}</h4>
+                          <span className="text-sm text-muted-foreground">{release.date}</span>
+                        </div>
+                        <ul className="space-y-1 list-disc list-inside text-sm">
+                          {release.changes.map((change, changeIndex) => (
+                            <li key={changeIndex}>{change}</li>
+                          ))}
+                        </ul>
+                        {index < CHANGELOG.length - 1 && <Separator className="my-2" />}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <p className="text-xs text-muted-foreground">© 2025 NicTech. Все права защищены.</p>
                 </CardFooter>
               </Card>
             </motion.div>
