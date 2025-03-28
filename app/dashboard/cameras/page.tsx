@@ -34,6 +34,7 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Checkbox } from "@/components/ui/checkbox"
+import { VideoStream } from "@/components/video-stream"
 
 export default function CamerasPage() {
   const router = useRouter()
@@ -50,6 +51,8 @@ export default function CamerasPage() {
   const [showOffline, setShowOffline] = useState(true)
   const [filterStatus, setFilterStatus] = useState<string[]>(["online", "offline", "disabled"])
   const [filterPTZ, setFilterPTZ] = useState<boolean | null>(null)
+  const [streamType, setStreamType] = useState<"hls" | "mjpeg" | "webrtc" | "mock">("mock")
+  const [codec, setCodec] = useState<"auto" | "h264" | "h265">("auto")
 
   // Получение данных авторизации из sessionStorage
   useEffect(() => {
@@ -145,20 +148,6 @@ export default function CamerasPage() {
   // Обработчик переключения полноэкранного режима
   const toggleFullscreen = (cameraId: string) => {
     setFullscreenCamera(cameraId === fullscreenCamera ? null : cameraId)
-  }
-
-  // Получение URL для снимка камеры
-  const getCameraSnapshotUrl = (cameraId: string, viewSize?: string) => {
-    if (!authData) return ""
-
-    let url = `/api/snapshot?id=${cameraId}`
-    if (viewSize) {
-      url += `&viewSize=${viewSize}`
-    }
-    // Добавляем случайное число для предотвращения кэширования
-    url += `&rand=${Math.random()}`
-
-    return url
   }
 
   // Обработчик обновления списка камер
@@ -331,6 +320,37 @@ export default function CamerasPage() {
                     </div>
                   </div>
 
+                  <div className="space-y-2">
+                    <h5 className="text-sm font-medium">Тип потока</h5>
+                    <Select value={streamType} onValueChange={(value: any) => setStreamType(value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите тип потока" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="mock">Тестовый поток</SelectItem>
+                        <SelectItem value="mjpeg">MJPEG поток</SelectItem>
+                        <SelectItem value="hls">HLS поток</SelectItem>
+                        <SelectItem value="webrtc">WebRTC поток</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {(streamType === "hls" || streamType === "webrtc") && (
+                    <div className="space-y-2">
+                      <h5 className="text-sm font-medium">Кодек</h5>
+                      <Select value={codec} onValueChange={(value: any) => setCodec(value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите кодек" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="auto">Автоматически</SelectItem>
+                          <SelectItem value="h264">H.264</SelectItem>
+                          <SelectItem value="h265">H.265 (HEVC)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
                   <div className="flex justify-between">
                     <Button
                       variant="outline"
@@ -439,10 +459,15 @@ export default function CamerasPage() {
                 {loading ? (
                   <Skeleton className="w-full h-full" />
                 ) : (
-                  <img
-                    src={getCameraSnapshotUrl(fullscreenCamera, "1280x720") || "/placeholder.svg?height=720&width=1280"}
-                    alt={`Камера ${cameras.find((c) => c.id === fullscreenCamera)?.name || fullscreenCamera}`}
-                    className="max-h-full max-w-full object-contain"
+                  <VideoStream
+                    cameraId={fullscreenCamera}
+                    serverUrl={authData?.serverUrl}
+                    authHeader={authData?.authHeader}
+                    streamType={streamType}
+                    codec={codec}
+                    width="100%"
+                    height="100%"
+                    controls={true}
                   />
                 )}
               </div>
@@ -496,12 +521,19 @@ export default function CamerasPage() {
                     >
                       <CardContent className="p-0 relative">
                         <div className="aspect-video bg-black relative">
-                          <img
-                            src={getCameraSnapshotUrl(camera.id, "640x360") || "/placeholder.svg?height=360&width=640"}
-                            alt={camera.name}
-                            className="w-full h-full object-cover"
-                          />
-                          {camera.status !== "online" && (
+                          {camera.status === "online" ? (
+                            <VideoStream
+                              cameraId={camera.id}
+                              serverUrl={authData?.serverUrl}
+                              authHeader={authData?.authHeader}
+                              streamType={streamType}
+                              codec={codec}
+                              width="100%"
+                              height="100%"
+                              controls={false}
+                              muted={true}
+                            />
+                          ) : (
                             <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
                               <span className="text-white font-medium">{getStatusText(camera.status)}</span>
                             </div>
@@ -529,7 +561,7 @@ export default function CamerasPage() {
                                   e.stopPropagation()
                                   // Экспорт кадра
                                   const link = document.createElement("a")
-                                  link.href = getCameraSnapshotUrl(camera.id)
+                                  link.href = `/api/snapshot?id=${camera.id}`
                                   link.download = `camera-${camera.id}-${new Date().toISOString()}.jpg`
                                   document.body.appendChild(link)
                                   link.click()
@@ -643,12 +675,19 @@ export default function CamerasPage() {
                   >
                     <CardContent className="p-4 flex items-center gap-4">
                       <div className="w-24 h-16 bg-black relative flex-shrink-0 rounded-md overflow-hidden">
-                        <img
-                          src={getCameraSnapshotUrl(camera.id, "240x160") || "/placeholder.svg?height=160&width=240"}
-                          alt={camera.name}
-                          className="w-full h-full object-cover"
-                        />
-                        {camera.status !== "online" && (
+                        {camera.status === "online" ? (
+                          <VideoStream
+                            cameraId={camera.id}
+                            serverUrl={authData?.serverUrl}
+                            authHeader={authData?.authHeader}
+                            streamType={streamType}
+                            codec={codec}
+                            width="100%"
+                            height="100%"
+                            controls={false}
+                            muted={true}
+                          />
+                        ) : (
                           <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
                             <span className="text-white text-xs">{getStatusText(camera.status)}</span>
                           </div>
@@ -735,7 +774,7 @@ export default function CamerasPage() {
                                 e.stopPropagation()
                                 // Экспорт кадра
                                 const link = document.createElement("a")
-                                link.href = getCameraSnapshotUrl(camera.id)
+                                link.href = `/api/snapshot?id=${camera.id}`
                                 link.download = `camera-${camera.id}-${new Date().toISOString()}.jpg`
                                 document.body.appendChild(link)
                                 link.click()

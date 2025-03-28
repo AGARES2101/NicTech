@@ -26,6 +26,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Progress } from "@/components/ui/progress"
 import { motion } from "framer-motion"
 import { AreaChart, BarChart } from "@/components/charts"
+import { VideoStream } from "@/components/video-stream"
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -112,20 +113,6 @@ export default function DashboardPage() {
 
     fetchData()
   }, [authData, router])
-
-  // Получение URL для снимка камеры
-  const getCameraSnapshotUrl = (cameraId: string, viewSize?: string) => {
-    if (!authData) return ""
-
-    let url = `/api/snapshot?id=${cameraId}`
-    if (viewSize) {
-      url += `&viewSize=${viewSize}`
-    }
-    // Добавляем случайное число для предотвращения кэширования
-    url += `&rand=${Math.random()}`
-
-    return url
-  }
 
   // Данные для графиков
   const eventChartData = [
@@ -465,12 +452,18 @@ export default function DashboardPage() {
                     {cameras.slice(0, 5).map((camera) => (
                       <div key={camera.id} className="flex items-center gap-4">
                         <div className="w-16 h-12 bg-black relative flex-shrink-0 rounded-md overflow-hidden">
-                          <img
-                            src={getCameraSnapshotUrl(camera.id, "160x120") || "/placeholder.svg"}
-                            alt={camera.name}
-                            className="w-full h-full object-cover"
-                          />
-                          {camera.status !== "online" && (
+                          {camera.status === "online" ? (
+                            <VideoStream
+                              cameraId={camera.id}
+                              serverUrl={authData?.serverUrl}
+                              authHeader={authData?.authHeader}
+                              streamType="mock"
+                              width="100%"
+                              height="100%"
+                              controls={false}
+                              muted={true}
+                            />
+                          ) : (
                             <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
                               <span className="text-white text-xs">Офлайн</span>
                             </div>
