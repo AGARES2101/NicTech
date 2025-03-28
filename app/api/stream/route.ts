@@ -5,26 +5,45 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const id = searchParams.get("id")
     const framerate = searchParams.get("framerate") || "10"
+    const streamIndex = searchParams.get("streamIndex") || "0"
 
-    // В реальном приложении здесь будет запрос к API NicTech
-    // const serverUrl = request.headers.get('server-url');
-    // const authHeader = request.headers.get('authorization');
+    // Получаем данные авторизации из заголовков
+    const serverUrl = request.headers.get("server-url")
+    const authHeader = request.headers.get("authorization")
 
-    // Для MJPEG потока нужно проксировать запрос напрямую
-    // return new Response(
-    //   fetch(`${serverUrl}/rsapi/mjpeg?id=${id}&framerate=${framerate}`, {
-    //     headers: {
-    //       'Authorization': authHeader
-    //     }
-    //   })
-    // );
+    if (!serverUrl || !authHeader) {
+      return NextResponse.redirect(`/api/stream/mock?id=${id}&width=640&height=480`)
+    }
 
-    // Для демонстрации возвращаем ошибку, так как в Next.js API Routes
-    // не поддерживают потоковую передачу данных напрямую
-    return NextResponse.json({
-      success: false,
-      message: "Для просмотра видеопотока используйте прямой URL к серверу NicTech",
-    })
+    // Для потока в формате камеры проксируем запрос к серверу Revisor VMS
+    try {
+      // Формируем URL для запроса к серверу Revisor VMS
+      const revisorUrl = `${serverUrl}/rsapi/stream?id=${id}&framerate=${framerate}&streamIndex=${streamIndex}`
+
+      // Создаем новый запрос к серверу Revisor VMS
+      const response = await fetch(revisorUrl, {
+        headers: {
+          Authorization: authHeader,
+        },
+      })
+
+      // Если запрос не успешен, возвращаем ошибку
+      if (!response.ok) {
+        throw new Error(`Ошибка получения видеопотока: ${response.statusText}`)
+      }
+
+      // Создаем новый Response объект, который будет проксировать данные от сервера Revisor VMS
+      return new Response(response.body, {
+        headers: {
+          "Content-Type": response.headers.get("Content-Type") || "video/mp4",
+          "Transfer-Encoding": "chunked",
+        },
+      })
+    } catch (error) {
+      console.error("Ошибка при проксировании видеопотока:", error)
+      // В случае ошибки перенаправляем на мок-поток
+      return NextResponse.redirect(`/api/stream/mock?id=${id}&width=640&height=480`)
+    }
   } catch (error) {
     console.error("Ошибка получения видеопотока:", error)
     return NextResponse.json({ success: false, message: "Ошибка сервера" }, { status: 500 })

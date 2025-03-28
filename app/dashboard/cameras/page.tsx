@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import {
   Expand,
   Maximize2,
@@ -53,6 +53,8 @@ export default function CamerasPage() {
   const [filterPTZ, setFilterPTZ] = useState<boolean | null>(null)
   const [streamType, setStreamType] = useState<"hls" | "mjpeg" | "webrtc" | "mock">("mock")
   const [codec, setCodec] = useState<"auto" | "h264" | "h265">("auto")
+  const streamIndexRef = useRef<0 | 1>(1) // useRef to hold the stream index
+  const [streamIndex, setStreamIndex] = useState<0 | 1>(streamIndexRef.current) // Initialize state with the ref's current value
 
   // Получение данных авторизации из sessionStorage
   useEffect(() => {
@@ -170,6 +172,14 @@ export default function CamerasPage() {
   // Обработчик переключения полноэкранного режима
   const toggleFullscreen = (cameraId: string) => {
     setFullscreenCamera(cameraId === fullscreenCamera ? null : cameraId)
+    // При разворачивании камеры переключаемся на основной поток
+    if (cameraId !== fullscreenCamera) {
+      streamIndexRef.current = 0 // Основной поток
+      setStreamIndex(0)
+    } else {
+      streamIndexRef.current = 1 // Возвращаемся к дополнительному потоку
+      setStreamIndex(1)
+    }
   }
 
   // Обработчик обновления списка камер
@@ -486,6 +496,7 @@ export default function CamerasPage() {
                     serverUrl={authData?.serverUrl}
                     authHeader={authData?.authHeader}
                     streamType={streamType}
+                    streamIndex={0} // Основной поток для полноэкранного режима
                     codec={codec}
                     width="100%"
                     height="100%"
@@ -549,6 +560,7 @@ export default function CamerasPage() {
                               serverUrl={authData?.serverUrl}
                               authHeader={authData?.authHeader}
                               streamType={streamType}
+                              streamIndex={1} // Дополнительный поток для сетки
                               codec={codec}
                               width="100%"
                               height="100%"
