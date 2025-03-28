@@ -2,19 +2,35 @@ import { type NextRequest, NextResponse } from "next/server"
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams
+    // Получаем параметры запроса
+    const { searchParams } = new URL(request.url)
     const id = searchParams.get("id")
+    const width = searchParams.get("width") || "640"
+    const height = searchParams.get("height") || "480"
 
-    // Since we don't have actual video files, redirect to a placeholder image
-    // This is a more reliable fallback than trying to serve non-existent video files
-    const width = 640
-    const height = 480
+    // Получаем базовый URL для создания абсолютного URL
+    const baseUrl = new URL(request.url).origin
 
-    // Return a placeholder image with camera ID
-    return NextResponse.redirect(`/placeholder.svg?height=${height}&width=${width}&text=Camera+${id || "Mock"}`)
+    // Создаем абсолютный URL для перенаправления
+    const placeholderUrl = new URL("/placeholder.svg", baseUrl)
+    placeholderUrl.searchParams.set("height", height)
+    placeholderUrl.searchParams.set("width", width)
+    placeholderUrl.searchParams.set("text", `Camera ${id || "Mock"}`)
+
+    // Возвращаем абсолютный URL для перенаправления
+    return NextResponse.redirect(placeholderUrl.toString())
   } catch (error) {
     console.error("Ошибка получения мок-видеопотока:", error)
-    return NextResponse.json({ success: false, message: "Ошибка сервера" }, { status: 500 })
+
+    // В случае ошибки возвращаем JSON с сообщением об ошибке
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Ошибка сервера",
+        error: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    )
   }
 }
 

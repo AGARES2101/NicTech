@@ -58,9 +58,24 @@ export default function CamerasPage() {
   useEffect(() => {
     const auth = sessionStorage.getItem("nictech-auth")
     if (auth) {
-      setAuthData(JSON.parse(auth))
+      try {
+        setAuthData(JSON.parse(auth))
+      } catch (e) {
+        console.error("Ошибка при разборе данных авторизации:", e)
+        // Если данные авторизации повреждены, перенаправляем на страницу входа
+        router.push("/login")
+      }
     } else {
-      router.push("/login")
+      // Для тестирования в режиме разработки можно использовать мок-данные
+      if (process.env.NODE_ENV === "development") {
+        console.log("Режим разработки: используем мок-данные для авторизации")
+        setAuthData({
+          serverUrl: "http://mock-server",
+          authHeader: "Basic mock-auth",
+        })
+      } else {
+        router.push("/login")
+      }
     }
   }, [router])
 
@@ -79,14 +94,21 @@ export default function CamerasPage() {
         })
 
         if (!response.ok) {
-          throw new Error("Ошибка получения списка камер")
+          throw new Error(`Ошибка получения списка камер: ${response.statusText}`)
         }
 
         const data = await response.json()
-        setCameras(data)
+
+        if (Array.isArray(data)) {
+          setCameras(data)
+        } else if (data.success === false) {
+          throw new Error(data.message || "Неизвестная ошибка при получении списка камер")
+        } else {
+          throw new Error("Некорректный формат данных от сервера")
+        }
       } catch (err) {
         console.error("Ошибка загрузки камер:", err)
-        setError("Не удалось загрузить список камер")
+        setError(err instanceof Error ? err.message : "Не удалось загрузить список камер")
       } finally {
         setLoading(false)
         setRefreshing(false)

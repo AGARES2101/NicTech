@@ -1,65 +1,48 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Loader2, AlertCircle } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import Image from "next/image"
+import { AlertCircle } from "lucide-react"
 
 interface VideoStreamProps {
   cameraId: string
   serverUrl?: string
   authHeader?: string
+  streamType: "hls" | "mjpeg" | "webrtc" | "mock"
+  codec?: "auto" | "h264" | "h265"
   width?: string | number
   height?: string | number
-  streamType?: "hls" | "mjpeg" | "webrtc" | "mock"
-  autoPlay?: boolean
-  muted?: boolean
   controls?: boolean
-  codec?: "h264" | "h265" | "auto"
-  onError?: (error: Error) => void
+  muted?: boolean
+  autoPlay?: boolean
 }
 
 export function VideoStream({
   cameraId,
   serverUrl,
   authHeader,
+  streamType = "mock",
+  codec = "auto",
   width = "100%",
   height = "100%",
-  streamType = "mjpeg",
-  autoPlay = true,
-  muted = true,
   controls = true,
-  codec = "auto",
-  onError,
+  muted = false,
+  autoPlay = true,
 }: VideoStreamProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
-  const imgRef = useRef<HTMLImageElement>(null)
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [streamUrl, setStreamUrl] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  // Функция для обработки ошибок
-  const handleError = (errorMessage: string) => {
-    console.error(errorMessage)
-    setError(errorMessage)
-    setLoading(false)
-    if (onError) {
-      onError(new Error(errorMessage))
-    }
-  }
-
-  // Инициализация видеопотока
   useEffect(() => {
-    if (!cameraId) return
+    // Сбрасываем состояние при изменении параметров
+    setError(null)
+    setLoading(true)
 
-    const initStream = async () => {
-      setLoading(true)
-      setError(null)
-
+    const loadStream = async () => {
       try {
         if (streamType === "mock") {
-          // Используем мок-видео для тестирования
-          setStreamUrl("/api/stream/mock?id=" + cameraId)
-          setLoading(false)
+          // Для мок-потока ничего не делаем, он загрузится через src
+          setTimeout(() => setLoading(false), 500)
           return
         }
 
@@ -67,180 +50,106 @@ export function VideoStream({
           throw new Error("Отсутствуют данные авторизации")
         }
 
-        // Получаем URL для потока в зависимости от выбранного типа
+        // Здесь будет логика для разных типов потоков
         switch (streamType) {
           case "hls":
-            // HLS поток (m3u8)
-            const hlsResponse = await fetch(
-              `/api/stream/hls?id=${cameraId}${codec !== "auto" ? `&codec=${codec}` : ""}`,
-              {
-                headers: {
-                  "server-url": serverUrl,
-                  authorization: authHeader,
-                },
-              },
-            )
-
-            if (!hlsResponse.ok) {
-              throw new Error("Не удалось получить HLS поток")
+            // Логика для HLS потока
+            if (videoRef.current) {
+              // Проверка поддержки HLS
+              if (videoRef.current.canPlayType("application/vnd.apple.mpegurl")) {
+                videoRef.current.src = `/api/stream/hls?id=${cameraId}&codec=${codec}`
+              } else {
+                // Если браузер не поддерживает HLS нативно, можно использовать hls.js
+                // Но для простоты сейчас просто выдаем ошибку
+                throw new Error("Браузер не поддерживает HLS потоки")
+              }
             }
-
-            const hlsData = await hlsResponse.json()
-            setStreamUrl(hlsData.url)
             break
-
           case "mjpeg":
-            // MJPEG поток
-            setStreamUrl(`/api/stream/mjpeg?id=${cameraId}`)
+            // MJPEG потоки обрабатываются через img тег, не через video
             break
-
           case "webrtc":
-            // WebRTC поток
-            const webrtcResponse = await fetch(
-              `/api/stream/webrtc?id=${cameraId}${codec !== "auto" ? `&codec=${codec}` : ""}`,
-              {
-                headers: {
-                  "server-url": serverUrl,
-                  authorization: authHeader,
-                },
-              },
-            )
-
-            if (!webrtcResponse.ok) {
-              throw new Error("Не удалось получить WebRTC поток")
-            }
-
-            const webrtcData = await webrtcResponse.json()
-            setStreamUrl(webrtcData.url)
-            break
-
+            // Логика для WebRTC потока
+            // Требуется дополнительная библиотека для WebRTC
+            throw new Error("WebRTC потоки пока не поддерживаются")
           default:
-            throw new Error("Неподдерживаемый тип потока")
+            throw new Error(`Неизвестный тип потока: ${streamType}`)
         }
-
-        setLoading(false)
       } catch (err) {
-        // Если произошла ошибка, переключаемся на мок-видео
-        console.warn("Ошибка при инициализации потока, переключаемся на мок-видео:", err)
-        setStreamUrl("/api/stream/mock?id=" + cameraId)
+        console.error("Ошибка инициализации видеопотока:", err)
+        setError(err instanceof Error ? err.message : "Ошибка загрузки видеопотока")
+      } finally {
         setLoading(false)
       }
     }
 
-    initStream()
-
-    // Очистка при размонтировании
-    return () => {
-      if (videoRef.current) {
-        videoRef.current.pause()
-        videoRef.current.src = ""
-        videoRef.current.load()
-      }
-    }
+    loadStream()
   }, [cameraId, serverUrl, authHeader, streamType, codec])
 
-  // Обновление MJPEG потока
-  useEffect(() => {
-    if (streamType !== "mjpeg" || !imgRef.current || !streamUrl) return
-
-    const img = imgRef.current
-    img.src = streamUrl
-    img.onerror = () => {
-      handleError("Ошибка загрузки MJPEG потока")
-    }
-    img.onload = () => {
-      setLoading(false)
-    }
-  }, [streamUrl, streamType])
-
-  // Обновление HLS/WebRTC/mock потока
-  useEffect(() => {
-    if ((streamType === "hls" || streamType === "webrtc" || streamType === "mock") && videoRef.current && streamUrl) {
-      const video = videoRef.current
-      video.src = streamUrl
-      video.onerror = () => {
-        // Для mock потока используем запасной вариант вместо ошибки
-        if (streamType === "mock") {
-          console.warn("Не удалось загрузить мок-видео, используем статическое изображение")
-          setLoading(false)
-          // Очищаем ошибку, так как будем использовать запасной вариант
-          setError(null)
-        } else {
-          handleError(`Ошибка загрузки ${streamType.toUpperCase()} потока`)
-        }
-      }
-      video.onloadeddata = () => {
-        setLoading(false)
-      }
-
-      if (autoPlay) {
-        video.play().catch((err) => {
-          console.warn("Автовоспроизведение не удалось:", err)
-          // Для mock потока не показываем ошибку при проблемах с автовоспроизведением
-          if (streamType === "mock") {
-            setLoading(false)
-          }
-        })
-      }
-    }
-  }, [streamUrl, streamType, autoPlay, codec])
-
-  // Отображение загрузки
-  if (loading) {
-    return (
-      <div style={{ width, height }} className="flex items-center justify-center bg-black">
-        <Loader2 className="h-8 w-8 text-white animate-spin" />
-      </div>
-    )
+  // Обработчик ошибок для видео
+  const handleVideoError = () => {
+    setError("Не удалось загрузить видеопоток")
+    setLoading(false)
   }
 
-  // Отображение ошибки
-  if (error) {
-    return (
-      <div style={{ width, height }} className="bg-black">
-        <Alert variant="destructive" className="bg-black/80 border-red-500">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      </div>
-    )
+  // Обработчик успешной загрузки видео
+  const handleVideoLoad = () => {
+    setLoading(false)
+    setError(null)
   }
 
-  // Отображение MJPEG потока
-  if (streamType === "mjpeg" && streamUrl) {
+  // Рендер в зависимости от типа потока
+  if (streamType === "mjpeg") {
     return (
-      <div style={{ width, height }} className="bg-black overflow-hidden">
-        <img
-          ref={imgRef}
-          src={streamUrl || "/placeholder.svg"}
-          alt={`Камера ${cameraId}`}
-          style={{ width: "100%", height: "100%", objectFit: "contain" }}
-        />
-      </div>
-    )
-  }
-
-  // Отображение HLS/WebRTC/Mock потока
-  return (
-    <div style={{ width, height }} className="bg-black overflow-hidden">
-      {error && streamType === "mock" ? (
-        // Запасной вариант для mock потока при ошибке
-        <div className="w-full h-full flex items-center justify-center">
+      <div className="relative w-full h-full bg-black flex items-center justify-center">
+        {loading && <div className="absolute inset-0 bg-black/50 flex items-center justify-center">Загрузка...</div>}
+        {error ? (
+          <div className="flex flex-col items-center justify-center text-destructive p-4 text-center">
+            <AlertCircle className="h-8 w-8 mb-2" />
+            <p>{error}</p>
+          </div>
+        ) : (
           <img
+            src={`/api/stream/mjpeg?id=${cameraId}`}
+            alt={`Camera ${cameraId} MJPEG Stream`}
+            style={{ width, height, objectFit: "contain" }}
+            onError={() => setError("Не удалось загрузить MJPEG поток")}
+            onLoad={handleVideoLoad}
+          />
+        )}
+      </div>
+    )
+  }
+
+  // Для мок-потока и других типов используем video тег
+  return (
+    <div className="relative w-full h-full bg-black flex items-center justify-center">
+      {loading && <div className="absolute inset-0 bg-black/50 flex items-center justify-center">Загрузка...</div>}
+      {error ? (
+        <div className="flex flex-col items-center justify-center text-destructive p-4 text-center">
+          <AlertCircle className="h-8 w-8 mb-2" />
+          <p>{error}</p>
+          <Image
             src={`/placeholder.svg?height=480&width=640&text=Camera+${cameraId}`}
-            alt={`Камера ${cameraId}`}
-            style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            alt={`Camera ${cameraId} Placeholder`}
+            width={640}
+            height={480}
+            style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
+            className="mt-4"
           />
         </div>
       ) : (
         <video
           ref={videoRef}
-          autoPlay={autoPlay}
-          muted={muted}
+          src={streamType === "mock" ? `/api/stream/mock?id=${cameraId}&width=640&height=480` : undefined}
           controls={controls}
+          muted={muted}
+          autoPlay={autoPlay}
+          loop={streamType === "mock"}
           playsInline
-          style={{ width: "100%", height: "100%", objectFit: "contain" }}
-          {...(codec === "h265" ? { "data-setup": '{"techOrder": ["html5"]}' } : {})}
+          style={{ width, height, objectFit: "contain" }}
+          onError={handleVideoError}
+          onLoadedData={handleVideoLoad}
         />
       )}
     </div>

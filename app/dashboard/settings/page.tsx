@@ -25,9 +25,25 @@ export default function SettingsPage() {
   useEffect(() => {
     const auth = sessionStorage.getItem("nictech-auth")
     if (auth) {
-      setAuthData(JSON.parse(auth))
+      try {
+        setAuthData(JSON.parse(auth))
+      } catch (e) {
+        console.error("Ошибка при разборе данных авторизации:", e)
+        router.push("/login")
+        return
+      }
     } else {
-      router.push("/login")
+      // Для тестирования в режиме разработки можно использовать мок-данные
+      if (process.env.NODE_ENV === "development") {
+        console.log("Режим разработки: используем мок-данные для авторизации")
+        setAuthData({
+          serverUrl: "http://mock-server",
+          authHeader: "Basic mock-auth",
+        })
+      } else {
+        router.push("/login")
+        return
+      }
     }
   }, [router])
 
@@ -38,10 +54,9 @@ export default function SettingsPage() {
     const fetchData = async () => {
       try {
         setLoading(true)
-        
+
         // Имитация загрузки данных
-        await new Promise(resolve => setTimeout(resolve, 1500))
-        
+        await new Promise((resolve) => setTimeout(resolve, 1500))
       } catch (error) {
         console.error("Ошибка загрузки данных:", error)
       } finally {
@@ -70,7 +85,7 @@ export default function SettingsPage() {
             <Button variant="outline" size="icon" onClick={handleRefresh} disabled={refreshing}>
               <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
             </Button>
-            
+
             <Button>
               <Save className="mr-2 h-4 w-4" />
               Сохранить изменения
@@ -82,64 +97,64 @@ export default function SettingsPage() {
       <div className="flex-1 flex overflow-hidden">
         <div className="w-64 border-r p-4 overflow-y-auto hidden md:block">
           <nav className="space-y-1">
-            <Button 
-              variant={activeTab === "general" ? "secondary" : "ghost"} 
+            <Button
+              variant={activeTab === "general" ? "secondary" : "ghost"}
               className="w-full justify-start"
               onClick={() => setActiveTab("general")}
             >
               <Settings className="mr-2 h-4 w-4" />
               Общие
             </Button>
-            <Button 
-              variant={activeTab === "server" ? "secondary" : "ghost"} 
+            <Button
+              variant={activeTab === "server" ? "secondary" : "ghost"}
               className="w-full justify-start"
               onClick={() => setActiveTab("server")}
             >
               <Server className="mr-2 h-4 w-4" />
               Сервер
             </Button>
-            <Button 
-              variant={activeTab === "cameras" ? "secondary" : "ghost"} 
+            <Button
+              variant={activeTab === "cameras" ? "secondary" : "ghost"}
               className="w-full justify-start"
               onClick={() => setActiveTab("cameras")}
             >
               <Camera className="mr-2 h-4 w-4" />
               Камеры
             </Button>
-            <Button 
-              variant={activeTab === "storage" ? "secondary" : "ghost"} 
+            <Button
+              variant={activeTab === "storage" ? "secondary" : "ghost"}
               className="w-full justify-start"
               onClick={() => setActiveTab("storage")}
             >
               <HardDrive className="mr-2 h-4 w-4" />
               Хранилище
             </Button>
-            <Button 
-              variant={activeTab === "users" ? "secondary" : "ghost"} 
+            <Button
+              variant={activeTab === "users" ? "secondary" : "ghost"}
               className="w-full justify-start"
               onClick={() => setActiveTab("users")}
             >
               <Users className="mr-2 h-4 w-4" />
               Пользователи
             </Button>
-            <Button 
-              variant={activeTab === "security" ? "secondary" : "ghost"} 
+            <Button
+              variant={activeTab === "security" ? "secondary" : "ghost"}
               className="w-full justify-start"
               onClick={() => setActiveTab("security")}
             >
               <Shield className="mr-2 h-4 w-4" />
               Безопасность
             </Button>
-            <Button 
-              variant={activeTab === "notifications" ? "secondary" : "ghost"} 
+            <Button
+              variant={activeTab === "notifications" ? "secondary" : "ghost"}
               className="w-full justify-start"
               onClick={() => setActiveTab("notifications")}
             >
               <Bell className="mr-2 h-4 w-4" />
               Уведомления
             </Button>
-            <Button 
-              variant={activeTab === "database" ? "secondary" : "ghost"} 
+            <Button
+              variant={activeTab === "database" ? "secondary" : "ghost"}
               className="w-full justify-start"
               onClick={() => setActiveTab("database")}
             >
@@ -148,7 +163,7 @@ export default function SettingsPage() {
             </Button>
           </nav>
         </div>
-        
+
         <div className="flex-1 p-6 overflow-auto">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="md:hidden mb-6">
             <TabsList className="grid grid-cols-4 mb-2">
@@ -180,7 +195,7 @@ export default function SettingsPage() {
               </TabsTrigger>
             </TabsList>
           </Tabs>
-          
+
           {activeTab === "general" && (
             <motion.div
               initial={{ opacity: 0 }}
@@ -191,7 +206,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold">Общие настройки</h2>
               </div>
-              
+
               <Card>
                 <CardHeader>
                   <CardTitle>Настройки системы</CardTitle>
@@ -200,9 +215,11 @@ export default function SettingsPage() {
                 <CardContent className="space-y-6">
                   {loading ? (
                     <div className="space-y-4">
-                      {Array(4).fill(0).map((_, i) => (
-                        <Skeleton key={i} className="h-10 w-full" />
-                      ))}
+                      {Array(4)
+                        .fill(0)
+                        .map((_, i) => (
+                          <Skeleton key={i} className="h-10 w-full" />
+                        ))}
                     </div>
                   ) : (
                     <>
@@ -210,7 +227,7 @@ export default function SettingsPage() {
                         <Label htmlFor="system-name">Название системы</Label>
                         <Input id="system-name" defaultValue="NicTech Enterprise" />
                       </div>
-                      
+
                       <div className="space-y-2">
                         <Label htmlFor="language">Язык интерфейса</Label>
                         <Select defaultValue="ru">
@@ -225,7 +242,7 @@ export default function SettingsPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                      
+
                       <div className="space-y-2">
                         <Label htmlFor="timezone">Часовой пояс</Label>
                         <Select defaultValue="europe-moscow">
@@ -240,7 +257,7 @@ export default function SettingsPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                      
+
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
                           <Label htmlFor="dark-mode">Темная тема</Label>
@@ -248,9 +265,9 @@ export default function SettingsPage() {
                         </div>
                         <Switch id="dark-mode" defaultChecked />
                       </div>
-                      
+
                       <Separator />
-                      
+
                       <div className="space-y-2">
                         <Label htmlFor="log-level">Уровень логирования</Label>
                         <Select defaultValue="info">
@@ -265,11 +282,13 @@ export default function SettingsPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                      
+
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
                           <Label htmlFor="auto-update">Автоматические обновления</Label>
-                          <p className="text-sm text-muted-foreground">Автоматически проверять и устанавливать обновления</p>
+                          <p className="text-sm text-muted-foreground">
+                            Автоматически проверять и устанавливать обновления
+                          </p>
                         </div>
                         <Switch id="auto-update" defaultChecked />
                       </div>
@@ -282,7 +301,7 @@ export default function SettingsPage() {
               </Card>
             </motion.div>
           )}
-          
+
           {activeTab === "server" && (
             <motion.div
               initial={{ opacity: 0 }}
@@ -293,7 +312,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold">Настройки сервера</h2>
               </div>
-              
+
               <Card>
                 <CardHeader>
                   <CardTitle>Параметры сервера</CardTitle>
@@ -302,9 +321,11 @@ export default function SettingsPage() {
                 <CardContent className="space-y-6">
                   {loading ? (
                     <div className="space-y-4">
-                      {Array(4).fill(0).map((_, i) => (
-                        <Skeleton key={i} className="h-10 w-full" />
-                      ))}
+                      {Array(4)
+                        .fill(0)
+                        .map((_, i) => (
+                          <Skeleton key={i} className="h-10 w-full" />
+                        ))}
                     </div>
                   ) : (
                     <>
@@ -312,12 +333,12 @@ export default function SettingsPage() {
                         <Label htmlFor="server-address">Адрес сервера</Label>
                         <Input id="server-address" defaultValue="http://localhost:11012" />
                       </div>
-                      
+
                       <div className="space-y-2">
                         <Label htmlFor="server-port">Порт</Label>
                         <Input id="server-port" defaultValue="11012" />
                       </div>
-                      
+
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
                           <Label htmlFor="https">HTTPS</Label>
@@ -325,19 +346,19 @@ export default function SettingsPage() {
                         </div>
                         <Switch id="https" defaultChecked />
                       </div>
-                      
+
                       <Separator />
-                      
+
                       <div className="space-y-2">
                         <Label htmlFor="max-connections">Максимальное количество подключений</Label>
                         <Input id="max-connections" defaultValue="100" />
                       </div>
-                      
+
                       <div className="space-y-2">
                         <Label htmlFor="session-timeout">Таймаут сессии (минуты)</Label>
                         <Input id="session-timeout" defaultValue="30" />
                       </div>
-                      
+
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
                           <Label htmlFor="remote-access">Удаленный доступ</Label>
@@ -354,7 +375,7 @@ export default function SettingsPage() {
               </Card>
             </motion.div>
           )}
-          
+
           {activeTab === "cameras" && (
             <motion.div
               initial={{ opacity: 0 }}
@@ -365,7 +386,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold">Настройки камер</h2>
               </div>
-              
+
               <Card>
                 <CardHeader>
                   <CardTitle>Параметры камер</CardTitle>
@@ -374,9 +395,11 @@ export default function SettingsPage() {
                 <CardContent className="space-y-6">
                   {loading ? (
                     <div className="space-y-4">
-                      {Array(4).fill(0).map((_, i) => (
-                        <Skeleton key={i} className="h-10 w-full" />
-                      ))}
+                      {Array(4)
+                        .fill(0)
+                        .map((_, i) => (
+                          <Skeleton key={i} className="h-10 w-full" />
+                        ))}
                     </div>
                   ) : (
                     <>
@@ -394,7 +417,7 @@ export default function SettingsPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                      
+
                       <div className="space-y-2">
                         <Label htmlFor="default-resolution">Разрешение по умолчанию</Label>
                         <Select defaultValue="1080p">
@@ -409,7 +432,7 @@ export default function SettingsPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                      
+
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
                           <Label htmlFor="motion-detection">Детекция движения</Label>
@@ -417,14 +440,14 @@ export default function SettingsPage() {
                         </div>
                         <Switch id="motion-detection" defaultChecked />
                       </div>
-                      
+
                       <Separator />
-                      
+
                       <div className="space-y-2">
                         <Label htmlFor="reconnect-interval">Интервал переподключения (секунды)</Label>
                         <Input id="reconnect-interval" defaultValue="10" />
                       </div>
-                      
+
                       <div className="space-y-2">
                         <Label htmlFor="ptz-speed">Скорость PTZ по умолчанию</Label>
                         <Select defaultValue="medium">
@@ -432,5 +455,79 @@ export default function SettingsPage() {
                             <SelectValue placeholder="Выберите скорость PTZ" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="\
+                            <SelectItem value="slow">Медленная</SelectItem>
+                            <SelectItem value="medium">Средняя</SelectItem>
+                            <SelectItem value="fast">Быстрая</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+                <CardFooter className="flex justify-end">
+                  <Button>Сохранить настройки</Button>
+                </CardFooter>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* Заглушки для остальных вкладок */}
+          {(activeTab === "storage" ||
+            activeTab === "users" ||
+            activeTab === "security" ||
+            activeTab === "notifications" ||
+            activeTab === "database") && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6"
+            >
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">
+                  {activeTab === "storage" && "Настройки хранилища"}
+                  {activeTab === "users" && "Управление пользователями"}
+                  {activeTab === "security" && "Настройки безопасности"}
+                  {activeTab === "notifications" && "Настройки уведомлений"}
+                  {activeTab === "database" && "Настройки базы данных"}
+                </h2>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>
+                    {activeTab === "storage" && "Параметры хранилища"}
+                    {activeTab === "users" && "Пользователи и группы"}
+                    {activeTab === "security" && "Параметры безопасности"}
+                    {activeTab === "notifications" && "Параметры уведомлений"}
+                    {activeTab === "database" && "Параметры базы данных"}
+                  </CardTitle>
+                  <CardDescription>Этот раздел находится в разработке</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {loading ? (
+                    <div className="space-y-4">
+                      {Array(4)
+                        .fill(0)
+                        .map((_, i) => (
+                          <Skeleton key={i} className="h-10 w-full" />
+                        ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center p-12 text-center">
+                      <h3 className="text-xl font-medium mb-2">Раздел в разработке</h3>
+                      <p className="text-muted-foreground max-w-md">
+                        Этот раздел настроек находится в разработке и будет доступен в ближайшем обновлении.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
 
