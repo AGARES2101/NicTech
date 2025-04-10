@@ -59,9 +59,13 @@
     "vaul": "^0.9.6",
     "zod": "^3.24.1",
     "@emotion/is-prop-valid": "latest",
+    "@dnd-kit/core": "latest",
     "xml2js": "latest",
     "framer-motion": "latest",
-    "d3": "latest"
+    "d3": "latest",
+    "@tanstack/react-virtual": "latest",
+    "@dnd-kit/sortable": "latest",
+    "@dnd-kit/utilities": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",
