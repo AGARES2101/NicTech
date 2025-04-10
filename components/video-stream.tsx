@@ -145,14 +145,30 @@ export function VideoStream({
 
   // Обработчик ошибок для видео
   const handleVideoError = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
-    const errorMessage = "Не удалось загрузить видеопоток"
-    logger.error(LogCategory.VIDEO, `${errorMessage} для ${streamId}`, {
-      errorCode: videoRef.current?.error?.code,
-      errorMessage: videoRef.current?.error?.message,
+    const videoElement = e.currentTarget
+    const errorCode = videoElement.error?.code
+    const errorMessage = videoElement.error?.message || "Неизвестная ошибка"
+
+    logger.error(LogCategory.VIDEO, `Ошибка загрузки видеопотока для ${streamId}`, {
+      errorCode,
+      errorMessage,
+      videoSrc: videoElement.src,
     })
-    setError(errorMessage)
+
+    // Если это мок-поток и произошла ошибка, попробуем использовать изображение-заполнитель
+    if (streamType === "mock") {
+      setError(`Не удалось загрузить видеопоток: ${errorMessage}`)
+
+      // Логируем дополнительную информацию для отладки
+      logger.debug(LogCategory.VIDEO, `Попытка использовать заполнитель для ${streamId}`, {
+        originalSrc: videoElement.src,
+      })
+    } else {
+      setError(`Не удалось загрузить видеопоток: ${errorMessage}`)
+    }
+
     setLoading(false)
-    if (onError) onError(errorMessage)
+    if (onError) onError(`Ошибка видеопотока: ${errorMessage}`)
   }
 
   // Обработчик успешной загрузки видео
@@ -219,11 +235,7 @@ export function VideoStream({
       ) : (
         <video
           ref={videoRef}
-          src={
-            streamType === "mock"
-              ? `/api/stream/mock?id=${cameraId}&width=640&height=480&streamIndex=${streamIndex}`
-              : undefined
-          }
+          src={streamType === "mock" ? `/api/stream/mock?id=${cameraId}&streamIndex=${streamIndex}` : undefined}
           controls={controls}
           muted={muted}
           autoPlay={autoPlay}
@@ -237,4 +249,3 @@ export function VideoStream({
     </div>
   )
 }
-

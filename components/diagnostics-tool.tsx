@@ -635,4 +635,3 @@ export function DiagnosticsTool({ serverUrl, authHeader }: DiagnosticsToolProps)
     </Card>
   )
 }
-

@@ -242,4 +242,3 @@ export function BarChart({ data }: BarChartProps) {
 
   return <svg ref={svgRef} width="100%" height="100%" />
 }
-

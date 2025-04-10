@@ -133,8 +133,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-security-pattern bg-cover">
-      <div className="absolute inset-0 premium-gradient opacity-90"></div>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-background dark:bg-background">
+      <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
+        <div className="absolute inset-0 bg-security-pattern opacity-5"></div>
+      </div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -144,16 +146,16 @@ export default function LoginPage() {
       >
         <div className="text-center mb-8">
           <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ duration: 0.5 }}>
-            <Shield className="h-16 w-16 mx-auto text-white mb-4" />
+            <Shield className="h-16 w-16 mx-auto text-primary mb-4" />
           </motion.div>
-          <h1 className="text-3xl font-bold text-white mb-2">NicTech Enterprise</h1>
-          <p className="text-white/80">Интеллектуальная система видеонаблюдения</p>
+          <h1 className="text-3xl font-bold mb-2">NicTech Enterprise</h1>
+          <p className="text-muted-foreground">Интеллектуальная система видеонаблюдения</p>
         </div>
 
-        <Card className="w-full backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl">
+        <Card className="w-full max-w-md bg-card border-border shadow-md">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center text-white">Авторизация</CardTitle>
-            <CardDescription className="text-center text-white/70">Введите данные для входа в систему</CardDescription>
+            <CardTitle className="text-2xl font-bold text-center">Авторизация</CardTitle>
+            <CardDescription className="text-center">Введите данные для входа в систему</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -162,11 +164,11 @@ export default function LoginPage() {
                   Адрес сервера
                 </Label>
                 <div className="relative">
-                  <Server className="absolute left-3 top-3 h-4 w-4 text-white/70" />
+                  <Server className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="server"
                     placeholder="http://localhost:11012"
-                    className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:bg-white/20"
+                    className="pl-10"
                     value={serverUrl}
                     onChange={(e) => setServerUrl(e.target.value)}
                     required
@@ -178,11 +180,11 @@ export default function LoginPage() {
                   Имя пользователя
                 </Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-white/70" />
+                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="username"
                     placeholder="admin"
-                    className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:bg-white/20"
+                    className="pl-10"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required
@@ -194,11 +196,11 @@ export default function LoginPage() {
                   Пароль
                 </Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-white/70" />
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    className="pl-10 pr-10 bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:bg-white/20"
+                    className="pl-10 pr-10"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -206,7 +208,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 text-white/70"
+                    className="absolute right-3 top-3 text-muted-foreground"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -217,45 +219,16 @@ export default function LoginPage() {
                   <AlertDescription className="text-white">{error}</AlertDescription>
                 </Alert>
               )}
-              <Button type="submit" className="w-full bg-white hover:bg-white/90 text-primary" disabled={loading}>
+              <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Авторизация..." : "Войти"}
               </Button>
-
-              {showBiometricPrompt && (
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-white/20"></span>
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-white/70">или</span>
-                  </div>
-                </div>
-              )}
-
-              {showBiometricPrompt && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full border-white/20 text-white hover:bg-white/20"
-                  onClick={handleBiometricAuth}
-                  disabled={loading}
-                >
-                  Биометрическая аутентификация
-                </Button>
-              )}
             </form>
           </CardContent>
-          <CardFooter className="flex justify-center text-sm text-white/50">
+          <CardFooter className="flex justify-center text-sm text-muted-foreground">
             NicTech Enterprise Edition © {new Date().getFullYear()}
           </CardFooter>
         </Card>
-
-        <div className="mt-8 text-center text-white/50 text-sm">
-          <p>Защищено передовыми технологиями шифрования</p>
-          <p className="mt-1">ISO 27001 • GDPR • FIPS 140-2</p>
-        </div>
       </motion.div>
     </div>
   )
 }
-

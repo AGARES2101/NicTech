@@ -27,6 +27,7 @@ import { Progress } from "@/components/ui/progress"
 import { motion } from "framer-motion"
 import { AreaChart, BarChart } from "@/components/charts"
 import { VideoStream } from "@/components/video-stream"
+import { logger, LogCategory } from "@/lib/logger"
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -55,64 +56,148 @@ export default function DashboardPage() {
     }
   }, [router])
 
+  useEffect(() => {
+    const fetchCameras = async () => {
+      try {
+        setLoading(true)
+
+        // Логируем начало загрузки
+        logger.info(LogCategory.VIDEO, "Начало загрузки списка камер для дашборда")
+
+        // Получаем данные авторизации из sessionStorage
+        const authDataStr = sessionStorage.getItem("nictech-auth")
+
+        if (!authDataStr) {
+          logger.warn(LogCategory.AUTH, "Отсутствуют данные авторизации для загрузки камер")
+
+          // Используем мок-данные в случае отсутствия авторизации
+          const mockCameras = Array.from({ length: 4 }, (_, i) => ({
+            id: `mock-camera-${i + 1}`,
+            name: `Камера ${i + 1}`,
+            status: i < 3 ? "online" : "offline",
+            location: "Мок-расположение",
+          }))
+          setCameras(mockCameras)
+          return
+        }
+
+        const authData = JSON.parse(authDataStr)
+
+        // Запрашиваем список камер с сервера
+        const response = await fetch("/api/cameras", {
+          headers: {
+            "server-url": authData.serverUrl,
+            authorization: `Basic ${btoa(`${authData.username}:${authData.password}`)}`,
+          },
+        })
+
+        if (!response.ok) {
+          throw new Error(`Ошибка получения списка камер: ${response.statusText}`)
+        }
+
+        const data = await response.json()
+
+        // Логируем успешную загрузку
+        logger.info(LogCategory.VIDEO, `Успешно загружено ${data.length} камер для дашборда`)
+
+        setCameras(data)
+      } catch (error) {
+        console.error("Ошибка загрузки списка камер:", error)
+
+        // Логируем ошибку
+        logger.error(LogCategory.VIDEO, "Ошибка загрузки списка камер для дашборда", error)
+
+        // Используем мок-данные в случае ошибки
+        const mockCameras = Array.from({ length: 4 }, (_, i) => ({
+          id: `mock-camera-${i + 1}`,
+          name: `Камера ${i + 1}`,
+          status: "online",
+          location: "Мок-расположение",
+        }))
+        setCameras(mockCameras)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchCameras()
+  }, [])
+
   // Загрузка данных
   useEffect(() => {
-    if (!authData) return
+    if (!authData) {
+      // Если нет данных авторизации, используем мок-данные
+      setStats({
+        totalCameras: cameras.length,
+        onlineCameras: cameras.filter((c: any) => c.status === "online").length,
+        totalEvents: 0,
+        criticalEvents: 0,
+        storageUsed: 68,
+        storageTotal: 100,
+        recognizedFaces: Math.floor(Math.random() * 50) + 10,
+        recognizedPlates: Math.floor(Math.random() * 30) + 5,
+      })
+      setLoading(false)
+      return
+    }
 
     const fetchData = async () => {
       try {
         setLoading(true)
 
-        // Загрузка камер
-        const camerasResponse = await fetch("/api/cameras", {
-          headers: {
-            "server-url": authData.serverUrl,
-            authorization: authData.authHeader,
-          },
-        })
-
-        if (!camerasResponse.ok) {
-          throw new Error("Ошибка получения списка камер")
-        }
-
-        const camerasData = await camerasResponse.json()
-        setCameras(camerasData)
-
         // Загрузка событий
-        const eventsResponse = await fetch("/api/events?lastMinutes=60", {
-          headers: {
-            "server-url": authData.serverUrl,
-            authorization: authData.authHeader,
-          },
-        })
+        try {
+          const eventsResponse = await fetch("/api/events?lastMinutes=60", {
+            headers: {
+              "server-url": authData.serverUrl,
+              authorization: `Basic ${btoa(`${authData.username}:${authData.password}`)}`,
+            },
+          })
 
-        if (!eventsResponse.ok) {
-          throw new Error("Ошибка получения событий")
+          if (!eventsResponse.ok) {
+            throw new Error("Ошибка получения событий")
+          }
+
+          const eventsData = await eventsResponse.json()
+          setEvents(eventsData)
+
+          // Установка статистики
+          setStats({
+            totalCameras: cameras.length,
+            onlineCameras: cameras.filter((c: any) => c.status === "online").length,
+            totalEvents: eventsData.length,
+            criticalEvents: eventsData.filter((e: any) => e.level === "alarm").length,
+            storageUsed: 68,
+            storageTotal: 100,
+            recognizedFaces: Math.floor(Math.random() * 50) + 10,
+            recognizedPlates: Math.floor(Math.random() * 30) + 5,
+          })
+        } catch (error) {
+          console.error("Ошибка загрузки событий:", error)
+          logger.error(LogCategory.API, "Ошибка загрузки событий", error)
+
+          // Установка статистики с мок-данными для событий
+          setStats({
+            totalCameras: cameras.length,
+            onlineCameras: cameras.filter((c: any) => c.status === "online").length,
+            totalEvents: 0,
+            criticalEvents: 0,
+            storageUsed: 68,
+            storageTotal: 100,
+            recognizedFaces: Math.floor(Math.random() * 50) + 10,
+            recognizedPlates: Math.floor(Math.random() * 30) + 5,
+          })
         }
-
-        const eventsData = await eventsResponse.json()
-        setEvents(eventsData)
-
-        // Установка статистики
-        setStats({
-          totalCameras: camerasData.length,
-          onlineCameras: camerasData.filter((c: any) => c.status === "online").length,
-          totalEvents: eventsData.length,
-          criticalEvents: eventsData.filter((e: any) => e.level === "alarm").length,
-          storageUsed: 68,
-          storageTotal: 100,
-          recognizedFaces: Math.floor(Math.random() * 50) + 10,
-          recognizedPlates: Math.floor(Math.random() * 30) + 5,
-        })
       } catch (error) {
         console.error("Ошибка загрузки данных:", error)
+        logger.error(LogCategory.API, "Ошибка загрузки данных для дашборда", error)
       } finally {
         setLoading(false)
       }
     }
 
     fetchData()
-  }, [authData, router])
+  }, [authData, cameras])
 
   // Данные для графиков
   const eventChartData = [
@@ -627,4 +712,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-

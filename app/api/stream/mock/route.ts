@@ -1,34 +1,28 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { logger, LogCategory } from "@/lib/logger"
 
 export async function GET(request: NextRequest) {
   try {
     // Получаем параметры запроса
     const { searchParams } = new URL(request.url)
     const id = searchParams.get("id")
-    const width = searchParams.get("width") || "640"
-    const height = searchParams.get("height") || "480"
     const streamIndex = searchParams.get("streamIndex") || "0"
 
-    // Получаем базовый URL для создания абсолютного URL
+    // Вместо перенаправления на SVG, возвращаем статический видеофайл
+    // Используем разные видеофайлы для основного и дополнительного потоков
+    const videoNumber = (Number.parseInt(id?.slice(-1) || "1", 10) % 3) + 1
+    const videoPath =
+      streamIndex === "1" ? `/videos/mock-stream-${videoNumber}.mp4` : `/videos/mock-stream-${videoNumber}.mp4`
+
+    logger.debug(LogCategory.VIDEO, `Запрос мок-видео: ${videoPath} для камеры ${id} (поток ${streamIndex})`)
+
+    // Перенаправляем на статический видеофайл
     const baseUrl = new URL(request.url).origin
+    const videoUrl = new URL(videoPath, baseUrl)
 
-    // Создаем абсолютный URL для перенаправления
-    // Для разных потоков используем разные заполнители
-    const placeholderUrl = new URL("/placeholder.svg", baseUrl)
-    placeholderUrl.searchParams.set("height", height)
-    placeholderUrl.searchParams.set("width", width)
-
-    // Для основного и дополнительного потоков разные тексты
-    if (streamIndex === "1") {
-      placeholderUrl.searchParams.set("text", `Camera ${id || "Mock"} (Secondary)`)
-    } else {
-      placeholderUrl.searchParams.set("text", `Camera ${id || "Mock"} (Main)`)
-    }
-
-    // Возвращаем абсолютный URL для перенаправления
-    return NextResponse.redirect(placeholderUrl.toString())
+    return NextResponse.redirect(videoUrl.toString(), { status: 307 })
   } catch (error) {
-    console.error("Ошибка получения мок-видеопотока:", error)
+    logger.error(LogCategory.VIDEO, "Ошибка получения мок-видеопотока:", error)
 
     // В случае ошибки возвращаем JSON с сообщением об ошибке
     return NextResponse.json(
@@ -41,4 +35,3 @@ export async function GET(request: NextRequest) {
     )
   }
 }
-

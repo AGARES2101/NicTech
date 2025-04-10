@@ -161,4 +161,3 @@ class Logger {
 
 // Экспортируем синглтон
 export const logger = Logger.getInstance()
-

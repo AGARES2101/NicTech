@@ -166,4 +166,3 @@ export function PTZControls({ cameraId, serverUrl, authHeader }: PTZControlsProp
     </div>
   )
 }
-

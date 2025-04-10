@@ -211,4 +211,3 @@ export function CameraInfo({ camera, onClose, serverUrl, authHeader }: CameraInf
     </div>
   )
 }
-

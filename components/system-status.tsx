@@ -136,4 +136,3 @@ export function SystemStatus({ serverUrl, authHeader }: SystemStatusProps) {
     </div>
   )
 }
-
